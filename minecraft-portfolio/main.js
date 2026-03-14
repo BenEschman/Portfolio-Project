@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+import {Block} from './Block'
 
 //setup
 const canvas = document.getElementById('game');
@@ -8,20 +9,26 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 
 //scene
 const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x87ceeb);
 
 
 //camera
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.z = 5;
+camera.position.set(5, 5, 15);
 
 //mouse lock
 const controls = new PointerLockControls(camera, document.body);
+controls.pointerSpeed += 1
 
 //cube
-const geometry = new THREE.BoxGeometry(1, 1, 1);
-const material = new THREE.MeshBasicMaterial({color: 0x00ff00});
-const cube = new THREE.Mesh(geometry, material);
-scene.add(cube);
+for(let i = 0; i < 10; i++){
+    for(let j = 0; j < 10; j++){
+        const block = new Block(0x00ff00);
+        block.cube.position.set(i, 0, j);
+        scene.add(block.cube);
+    }
+}
+
 
 //event Listener
 const keys = {};
@@ -53,8 +60,6 @@ function animate(){
     if(keys['Space']) camera.position.y += speed;
     if(keys['ControlLeft'] || keys['ControlRight']) camera.position.y -= speed;
 
-    cube.rotation.x += 0.01;
-    cube.rotation.y += 0.01;
     renderer.render(scene, camera);
 }
 
