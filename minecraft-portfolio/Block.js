@@ -30,3 +30,18 @@ export class Block{
 
 
 }
+
+export class BlockData{
+
+    color;
+    type;
+    name;
+
+    constructor(color, type, name){
+        this.color = color;
+        this.type = type;
+        this.name = name;
+    }
+
+}
+
