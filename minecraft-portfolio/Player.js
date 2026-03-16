@@ -1,40 +1,85 @@
+import { worldGetBlock } from "./World";
+
 export class Player {
-    position;
-    velocity;
-    gravity = -0.01;
+    position = { x: 0, y: 55, z: 0 };
+    velocity = { x: 0, y: 0, z: 0 };
+    gravity = -0.015;
     isOnGround = false;
     jump = false;
-    ticks = 0;
 
-    constructor(x, y){
-        this.position = { x: 100, y: 60, z: 100 };
-        this.velocity = { x: 0, y: 0, z: 0 };
+    isSolid(x, y, z){
+        const b = worldGetBlock(Math.floor(x), Math.floor(y), Math.floor(z));
+        return b != null && b !== 0;
     }
 
-    checkGravity(world){
-        let cx = Math.floor(this.position.x / 10);
-        let cz = Math.floor(this.position.z / 10);
-        let bx = Math.floor(this.position.x % 10);
-        let bz = Math.floor(this.position.z % 10);
-        let b = world.chunks[cx][cz].blocks[bx][bz][Math.floor(this.position.y - 1)];
-        if(this.jump && this.ticks < 16){
-            this.velocity.y += 0.1;
-            this.position.y += this.velocity.y;
-            this.ticks++;
-        } else{
-            this.ticks = 0;
+    move(){
+        // jumping
+        if(this.jump && this.isOnGround){
+            this.velocity.y = 0.3;
+            this.isOnGround = false;
             this.jump = false;
         }
-        if(b == null || b == 0 && !this.jump){
-            this.velocity.y += this.gravity;
-            this.position.y += this.velocity.y;
-            this.isOnGround = false;
-        } else {
-            this.velocity.y = 0;
-            this.isOnGround = true;
+
+        // gravity
+      // gravity
+if(!this.isOnGround){
+    this.velocity.y += this.gravity;
+    if(this.velocity.y < -0.4) this.velocity.y = -0.4;
+} else {
+    this.velocity.y = 0; // this is the key line
+}
+
+        const buffer = 0.2;
+        const worldLimit = 100;
+
+        // move x
+        this.position.x += this.velocity.x;
+        this.position.x = Math.max(-worldLimit, Math.min(worldLimit, this.position.x));
+        if(
+            this.isSolid(this.position.x + buffer, this.position.y, this.position.z) ||
+            this.isSolid(this.position.x - buffer, this.position.y, this.position.z) ||
+            this.isSolid(this.position.x + buffer, this.position.y + 1, this.position.z) ||
+            this.isSolid(this.position.x - buffer, this.position.y + 1, this.position.z)
+        ){
+            this.position.x -= this.velocity.x;
         }
 
-    }
-    
+        // move z
+        this.position.z += this.velocity.z;
+        this.position.z = Math.max(-worldLimit, Math.min(worldLimit, this.position.z));
+        if(
+            this.isSolid(this.position.x, this.position.y, this.position.z + buffer) ||
+            this.isSolid(this.position.x, this.position.y, this.position.z - buffer) ||
+            this.isSolid(this.position.x, this.position.y + 1, this.position.z + buffer) ||
+            this.isSolid(this.position.x, this.position.y + 1, this.position.z - buffer)
+        ){
+            this.position.z -= this.velocity.z;
+        }
 
+        // move y
+        this.position.y += this.velocity.y;
+        
+        // check ceiling
+        if(
+            this.isSolid(this.position.x, this.position.y + 2, this.position.z)
+        ){
+            this.position.y -= this.velocity.y;
+            this.velocity.y = 0;
+        }
+
+        // check floor
+const inBlock = this.isSolid(this.position.x, this.position.y, this.position.z);
+const aboveBlock = this.isSolid(this.position.x, this.position.y - 0.001, this.position.z);
+
+if(inBlock){
+    this.position.y = Math.floor(this.position.y) + 1;
+    this.velocity.y = 0;
+    this.isOnGround = true;
+} else if(aboveBlock && this.velocity.y <= 0){
+    this.velocity.y = 0;
+    this.isOnGround = true;
+} else {
+    this.isOnGround = false;
+}
+    }
 }

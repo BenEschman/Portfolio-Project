@@ -1,44 +1,115 @@
-import {BlockData} from './Block'
+import {Tree} from './structures';
 import * as THREE from 'three';
+import './store';
+import { sessionId } from './GameState';
+import { supabase, saveBlock, loadBlocks, getSeed, saveSeed, clearBlocks, clearWorldSettings } from './store';
+import { createNoise2D } from 'simplex-noise';
+
+let seed = 1000;
+const loader = new THREE.TextureLoader();
+const noise2D = createNoise2D(() => seededRandom());
+
+function loadTex(path){
+    const t = loader.load(path);
+    t.magFilter = THREE.NearestFilter;
+    t.minFilter = THREE.NearestFilter;
+    return t;
+}
+
+const TEXTURES = {
+    grass_top:  loadTex('/textures/grass_block_top.png'),
+    grass_side: loadTex('/textures/grass_block_side.png'),
+    dirt:       loadTex('/textures/dirt.png'),
+    stone:      loadTex('/textures/stone.png'),
+    log_side:   loadTex('/textures/oak_log.png'),
+    log_top:    loadTex('/textures/oak_log_top.png'),
+    leaves:     loadTex('/textures/oak_leaves.png'),
+}
+
 
 const FACES = [
-    { dir: [1, 0, 0],  vertices: [[1,0,0],[1,1,0],[1,1,1],[1,0,1]] }, // right
-    { dir: [-1, 0, 0], vertices: [[0,0,1],[0,1,1],[0,1,0],[0,0,0]] }, // left
-    { dir: [0, 1, 0],  vertices: [[0,1,0],[0,1,1],[1,1,1],[1,1,0]] }, // top
-    { dir: [0, -1, 0], vertices: [[0,0,1],[0,0,0],[1,0,0],[1,0,1]] }, // bottom
-    { dir: [0, 0, 1],  vertices: [[1,0,1],[1,1,1],[0,1,1],[0,0,1]] }, // front
-    { dir: [0, 0, -1], vertices: [[0,0,0],[0,1,0],[1,1,0],[1,0,0]] }, // back
+    { dir: [1, 0, 0],  vertices: [[1,0,0],[1,1,0],[1,1,1],[1,0,1]], face: 'side' },
+    { dir: [-1, 0, 0], vertices: [[0,0,1],[0,1,1],[0,1,0],[0,0,0]], face: 'side' },
+    { dir: [0, 1, 0],  vertices: [[0,1,0],[0,1,1],[1,1,1],[1,1,0]], face: 'top' },
+    { dir: [0, -1, 0], vertices: [[0,0,1],[0,0,0],[1,0,0],[1,0,1]], face: 'bottom' },
+    { dir: [0, 0, 1],  vertices: [[1,0,1],[1,1,1],[0,1,1],[0,0,1]], face: 'side' },
+    { dir: [0, 0, -1], vertices: [[0,0,0],[0,1,0],[1,1,0],[1,0,0]], face: 'side' },
 ];
 
 const BlockRegistry = {
-    0: { name: 'air',   color: null,      solid: false },
-    1: { name: 'grass', color: 0x427014,  solid: true },
-    2: { name: 'dirt',  color: 0x2e240d,  solid: true },
-    3: { name: 'stone', color: 0x403e3a,  solid: true },
+    0: { name: 'air', solid: false, textures: null },
+    1: { name: 'grass', solid: true, textures: {
+        top:    TEXTURES.grass_top,
+        bottom: TEXTURES.dirt,
+        side:   TEXTURES.grass_side,
+    }},
+    2: { name: 'dirt', solid: true, textures: {
+        top:    TEXTURES.dirt,
+        bottom: TEXTURES.dirt,
+        side:   TEXTURES.dirt,
+    }},
+    3: { name: 'stone', solid: true, textures: {
+        top:    TEXTURES.stone,
+        bottom: TEXTURES.stone,
+        side:   TEXTURES.stone,
+    }},
+    4: { name: 'log', solid: true, textures: {
+        top:    TEXTURES.log_top,
+        bottom: TEXTURES.log_top,
+        side:   TEXTURES.log_side,
+    }},
+    5: { name: 'leaves', solid: true, textures: {
+        top:    TEXTURES.leaves,
+        bottom: TEXTURES.leaves,
+        side:   TEXTURES.leaves,
+    }},
+}
+
+
+const chunks = new Map();
+
+function chunkKey(x, y){
+
+    return `${x}, ${y}`;
+
+}
+
+function getTerrainHeight(worldX, worldZ){
+    const value = noise2D(worldX / 200, worldZ / 200);
+    return Math.floor(40 + value * 10);
 }
 export class Chunk{
+
+    chunkX;
+    chunkZ;
+    scene;
+
 
     blocks = [];
 
 
     constructor(cx, cz, scene){
-        
+
+        this.chunkX = cx;
+        this.chunkZ = cz;
+        this.scene = scene;
         for(let x = 0; x < 10; x++){
             this.blocks[x] = [];
             for(let z = 0; z < 10; z++){
+                const height = getTerrainHeight(x + cx * 10, z + cz * 10);
                 this.blocks[x][z] = [];
-                for(let y = 0; y < 50; y++){
+                for(let y = 0; y < height; y++){
                     this.blocks[x][z][y] = [];
-                    if(y == 49){
-                        this.blocks[x][z][y] = 0;
-                    } else if (y > 45){
+                    if(y == height - 1){
                         this.blocks[x][z][y] = 1;
-                    } else if (y > 43){
+                    } else if (y > height - 4){
+                        this.blocks[x][z][y] = 2;
+                    } else if (y > height - 8){
                         let chance = Math.random();
-                        chance > 0.75 ? this.blocks[x][z][y] = 1 : this.blocks[x][z][y] = 2;
+                        chance > 0.75 ? this.blocks[x][z][y] = 2 : this.blocks[x][z][y] = 3;
                         
                     } else{
-                        this.blocks[x][z][y] = 2;
+                        this.blocks[x][z][y] = 3;
                     }
                 }
             }
@@ -47,90 +118,223 @@ export class Chunk{
     }
 
     getBlock(x, y, z) {
-        if(x < 0 || x >= 10 || z < 0 || z >= 10 || y < 0 || y >= 51) {
+        if(x < 0 || x >= 10 || z < 0 || z >= 10 || y < 0 || y >= 90) {
             return null;
         }
         return this.blocks[x][z][y];
     }
     
     setBlock(x, y, z, type) {
-        if(x < 0 || x >= 10 || z < 0 || z >= 10 || y < 0 || y >= 51) {
+        if(x < 0 || x >= 10 || z < 0 || z >= 10 || y < 0 || y >= 90) {
             return;
         }
         this.blocks[x][z][y] = type;
     }
 
 
-    buildMesh(scene, cx, cz) {
-        const positions = [];
-        const indices = [];
-        const colors = [];
-        let vertexCount = 0;
+    buildMesh(cx, cz){
+        // group faces by texture
+        const groups = new Map();
     
-        for(let x = 0; x < 10; x++) {
-            for(let z = 0; z < 10; z++) {
-                for(let y = 0; y < 50; y++) {
+        for(let x = 0; x < 10; x++){
+            for(let z = 0; z < 10; z++){
+                for(let y = 0; y < 90; y++){
                     const block = this.getBlock(x, y, z);
-                    if(block == null || block === 0) continue; // skip air
+                    if(block == null || block === 0) continue;
     
-                    for(const face of FACES) {
+                    const blockData = BlockRegistry[block];
+    
+                    for(const face of FACES){
                         const [dx, dy, dz] = face.dir;
                         const neighbor = this.getBlock(x+dx, y+dy, z+dz);
+                        if(neighbor != null && neighbor !== 0) continue;
     
-                        if(neighbor != null && neighbor !== 0) continue; // skip hidden faces
+                        const texture = blockData.textures[face.face];
+                        const key = texture.uuid; // unique id for each texture
     
-                        // add 4 vertices for this face
-                        const color = new THREE.Color(BlockRegistry[block].color) ?? new THREE.Color(0xff00ff);
-                        for(const [vx, vy, vz] of face.vertices) {
-                            positions.push(
+                        if(!groups.has(key)){
+                            groups.set(key, {
+                                texture,
+                                positions: [],
+                                indices: [],
+                                uvs: [],
+                                vertexCount: 0
+                            });
+                        }
+    
+                        const g = groups.get(key);
+    
+                        for(const [vx, vy, vz] of face.vertices){
+                            g.positions.push(
                                 x + cx * 10 + vx,
                                 y + vy,
                                 z + cz * 10 + vz
                             );
-                            colors.push(color.r, color.g, color.b);
                         }
     
-                        // add 2 triangles (6 indices) for this face
-                        indices.push(
-                            vertexCount, vertexCount + 1, vertexCount + 2,
-                            vertexCount, vertexCount + 2, vertexCount + 3
+                        // UV coordinates for a full texture on one face
+                        g.uvs.push(
+                            0, 0,
+                            0, 1,
+                            1, 1,
+                            1, 0
                         );
-                        vertexCount += 4;
+    
+                        g.indices.push(
+                            g.vertexCount, g.vertexCount + 1, g.vertexCount + 2,
+                            g.vertexCount, g.vertexCount + 2, g.vertexCount + 3
+                        );
+                        g.vertexCount += 4;
                     }
                 }
             }
         }
     
-        const geometry = new THREE.BufferGeometry();
-        geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(positions), 3));
-        geometry.setIndex(indices);
-        geometry.computeVertexNormals();
-        geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(colors), 3));
-
-        const material = new THREE.MeshLambertMaterial({ vertexColors: true });
-        this.mesh = new THREE.Mesh(geometry, material);
-        scene.add(this.mesh);
+        // build one mesh per texture group
+        this.meshes = [];
+        for(const [key, g] of groups){
+            const geometry = new THREE.BufferGeometry();
+            geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(g.positions), 3));
+            geometry.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(g.uvs), 2));
+            geometry.setIndex(g.indices);
+            geometry.computeVertexNormals();
+    
+            const material = new THREE.MeshLambertMaterial({
+                map: g.texture,
+                color: key === TEXTURES.leaves.uuid || key === TEXTURES.grass_top.uuid 
+                    ? 0x5d9e2f  // green tint for leaves and grass
+                    : 0xffffff  // no tint for other blocks
+            });
+    
+            const mesh = new THREE.Mesh(geometry, material);
+            this.scene.add(mesh);
+            this.meshes.push(mesh);
+        }
+    }
+    rebuildMesh(){
+        if(this.meshes){
+            for(const mesh of this.meshes){
+                this.scene.remove(mesh);
+                mesh.geometry.dispose();
+                mesh.material.dispose();
+            }
+            this.meshes = [];
+        }
+        this.buildMesh(this.chunkX, this.chunkZ);
     }
 
 }
+
 
 
 export class World{
 
-    chunks = []
+    buildTrees(){
+        let trees = Math.round(seededRandom() * 200);
+
+        for(let i = 0; i < trees; i++ ){
+            let size = Math.sqrt(chunks.size) * 10
+            let x = Math.floor(seededRandom() * size) - size/2;
+            let z = Math.floor(seededRandom() * size) - size/2;
+            Tree.place(x, getTerrainHeight(x, z), z);
+        }
+    }
 
     constructor(scene){
-        for(let cx = 0; cx <= 20; cx++){
-            this.chunks[cx] = [];
-            for(let cz = 0; cz <= 20; cz++){
-                this.chunks[cx][cz] = [];
+        
+        for(let cx = -10; cx <= 10; cx++){
+            for(let cz = -10; cz <= 10; cz++){
                 let chunk = new Chunk(cx, cz, scene);
-                chunk.buildMesh(scene, cx, cz);
-                this.chunks[cx][cz] = chunk;
+                chunks.set(chunkKey(cx, cz), chunk);
+                
             }
+        }
+        
+    }
+    async init(key){
+        let worldSeed = await getSeed(key);
+    
+        if(!worldSeed){
+            // first time — generate and save a seed
+            worldSeed = Math.floor(Math.random() * 1000000);
+            await saveSeed(worldSeed, key);
+        }
+        
+        seed = worldSeed;
+        this.buildTrees();
+        const blocks = await loadBlocks();
+        if(blocks){
+            for(const b of blocks){
+                worldSetBlockSilent(b.x, b.y, b.z, b.type);
+            }
+        }
+        
+
+        for(const c of Array.from(chunks.values())){
+            c.buildMesh(c.chunkX, c.chunkZ);
         }
     }
 
 
+}
+export function worldSetBlockSilent(x, y, z, type){
+    let cx = Math.floor(x / 10);
+    let cz = Math.floor(z / 10);
+    let lx = ((Math.floor(x) % 10) + 10) % 10;
+    let lz = ((Math.floor(z) % 10) + 10) % 10;
+
+    let chunk = chunks.get(chunkKey(cx, cz));
+    if(!chunk) return;
+
+    chunk.setBlock(lx, Math.floor(y), lz, type);
+}
+
+export function worldGetBlock(x, y, z){
+    let cx = Math.floor(x / 10);
+    let cz = Math.floor(z / 10);
+
+    let lx = ((Math.floor(x) % 10) + 10) % 10;
+    let lz = ((Math.floor(z) % 10) + 10) % 10;
+
+    let chunk = chunks.get(chunkKey(cx, cz));
+
+    return chunk.getBlock(lx, Math.floor(y), lz);
 
 }
+
+export function worldSetBlock(x, y, z, type){
+    let cx = Math.floor(x / 10);
+    let cz = Math.floor(z / 10);
+
+    let lx = ((Math.floor(x) % 10) + 10) % 10;
+    let lz = ((Math.floor(z) % 10) + 10) % 10;
+
+    let chunk = chunks.get(chunkKey(cx, cz));
+
+    if(!chunk) return;
+
+    chunk.setBlock(lx, Math.floor(y), lz, type);
+    chunk.rebuildMesh();
+    saveBlock(x, Math.floor(y), z, type, sessionId);
+    return 0;
+
+}
+
+function seededRandom(){
+    seed = (seed * 9301 + 49297) % 233280;
+    return seed / 233280;
+}
+
+export async function resetWorld(){
+    await clearBlocks();
+    await clearWorldSettings();
+    window.location.reload(); // reload the page to regenerate
+}
+export function rebuildChunkAt(x, z){
+    let cx = Math.floor(x / 10);
+    let cz = Math.floor(z / 10);
+    let chunk = chunks.get(chunkKey(cx, cz));
+    if(chunk) chunk.rebuildMesh();
+}
+
+export {chunks}
