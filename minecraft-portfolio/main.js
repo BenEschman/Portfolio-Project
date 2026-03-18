@@ -5,9 +5,10 @@ import { Player } from './Player';
 import { sessionId, playerName, setPlayerName, loadPlayerName } from './GameState';
 import { updatePresence } from './store';
 import { initInput, keys } from './input';
-import { initHotbar, initPauseMenu, getSelectedBlock, enablePause } from './ui';
 import { initMultiplayer, updatePlayerTags } from './multiplayer';
 import { initSigns, openSignPlacement } from './sign';
+import { initHotbar, initPauseMenu, getSelectedBlock, enablePause, updateHotbarUI } from './ui';
+import { getHotbarSlots, initInventory } from './inventory';
 
 // renderer
 const canvas = document.getElementById('game');
@@ -36,7 +37,7 @@ scene.add(new THREE.AmbientLight(0xffffff, 0.3));
 const p = new Player(0, 0);
 
 // UI
-initHotbar();
+initHotbar(getHotbarSlots());
 initPauseMenu(controls);
 initInput(controls, breakBlock, placeBlock, resetWorld);
 
@@ -67,11 +68,19 @@ async function start(){
     }
 }
 
+
+//intiate inventory
+
 async function startGame(){
     const world = new World(scene);
     await world.init('BaseWorld');
     initMultiplayer(scene);
     enablePause();
+
+// and update when inventory changes:
+initInventory(controls, (newHotbar) => {
+    updateHotbarUI(newHotbar);
+});
     animate();
 }
 
@@ -103,15 +112,15 @@ function animate(){
     if(!keys['KeyW'] && !keys['KeyS'] && !keys['KeyA'] && !keys['KeyD']) move(direction, 0, 1);
     if(keys['Space']) p.isOnGround ? p.jump = true : 0;
     if(keys['ControlLeft'] || keys['ControlRight']) p.position.y -= speed;
-    let ePressed = false;
-    if(keys['KeyE'] && !ePressed){
-        ePressed = true;
+    let pPressed = false;
+    if(keys['KeyP'] && !pPressed){
+        pPressed = true;
         const target = blockInView();
         if(target && document.getElementById('sign-ui').style.display === 'none'){
             openSignPlacement(target.bx, target.by + 1, target.bz, controls);
         }
-    } else if(!keys['KeyE']){
-        ePressed = false;
+    } else if(!keys['KeyP']){
+        pPressed = false;
     }
 
     p.move();

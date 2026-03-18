@@ -9,7 +9,10 @@ export const supabase = createClient(supabaseUrl, supabaseKey);
 export async function saveBlock(x, y, z, type, sessionId){
     const { error } = await supabase
         .from('BaseWorld')
-        .upsert({ x, y, z, type, session_id: sessionId });
+        .upsert(
+            { x, y, z, type, session_id: sessionId },
+            { onConflict: 'x,y,z' }
+        );
     
     if(error) console.error('save error:', error);
 }

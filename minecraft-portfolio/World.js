@@ -17,13 +17,16 @@ function loadTex(path){
 }
 
 const TEXTURES = {
-    grass_top:  loadTex('/textures/grass_block_top.png'),
-    grass_side: loadTex('/textures/grass_block_side.png'),
-    dirt:       loadTex('/textures/dirt.png'),
-    stone:      loadTex('/textures/stone.png'),
-    log_side:   loadTex('/textures/oak_log.png'),
+    grass_top:  loadTex('/textures/grass_block_top2.png'),
+    grass_side: loadTex('/textures/grass_block_side2.png'),
+    dirt:       loadTex('/textures/dirt2.png'),
+    stone:      loadTex('/textures/stone2.png'),
+    log_side:   loadTex('/textures/oak_log2.png'),
     log_top:    loadTex('/textures/oak_log_top.png'),
-    leaves:     loadTex('/textures/oak_leaves.png'),
+    leaves:     loadTex('/textures/oak_leaves2.png'),
+    planks:     loadTex('/textures/oak_planks2.png'),
+    quartz_pillar:     loadTex('/textures/quartz_pillar.png'),
+    quartz_pillar_top:     loadTex('/textures/quarts_pillar_top.png'), 
 }
 
 
@@ -36,32 +39,42 @@ const FACES = [
     { dir: [0, 0, -1], vertices: [[0,0,0],[0,1,0],[1,1,0],[1,0,0]], face: 'side' },
 ];
 
-const BlockRegistry = {
-    0: { name: 'air', solid: false, textures: null },
-    1: { name: 'grass', solid: true, textures: {
+export const BlockRegistry = {
+    0: { name: 'air', solid: false, transparent: false, textures: null },
+    1: { name: 'grass', solid: true, transparent: false, textures: {
         top:    TEXTURES.grass_top,
         bottom: TEXTURES.dirt,
         side:   TEXTURES.grass_side,
     }},
-    2: { name: 'dirt', solid: true, textures: {
+    2: { name: 'dirt', solid: true, transparent: false, textures: {
         top:    TEXTURES.dirt,
         bottom: TEXTURES.dirt,
         side:   TEXTURES.dirt,
     }},
-    3: { name: 'stone', solid: true, textures: {
+    3: { name: 'stone', solid: true, transparent: false, textures: {
         top:    TEXTURES.stone,
         bottom: TEXTURES.stone,
         side:   TEXTURES.stone,
     }},
-    4: { name: 'log', solid: true, textures: {
+    4: { name: 'log', solid: true, transparent: false, textures: {
         top:    TEXTURES.log_top,
         bottom: TEXTURES.log_top,
         side:   TEXTURES.log_side,
     }},
-    5: { name: 'leaves', solid: true, textures: {
+    5: { name: 'leaves', solid: true, transparent: true, textures: {
         top:    TEXTURES.leaves,
         bottom: TEXTURES.leaves,
         side:   TEXTURES.leaves,
+    }},
+    6: { name: 'plank', solid: true, transparent: false, textures: {
+        top:    TEXTURES.planks,
+        bottom: TEXTURES.planks,
+        side:   TEXTURES.planks,
+    }},
+    7: { name: 'quartz pillar', solid: true, transparent: false, textures: {
+        top:    TEXTURES.quartz_pillar_top,
+        bottom: TEXTURES.quartz_pillar_top,
+        side:   TEXTURES.quartz_pillar,
     }},
 }
 
@@ -147,7 +160,8 @@ export class Chunk{
                     for(const face of FACES){
                         const [dx, dy, dz] = face.dir;
                         const neighbor = this.getBlock(x+dx, y+dy, z+dz);
-                        if(neighbor != null && neighbor !== 0) continue;
+                        const neighborData = neighbor != null && neighbor !== 0 ? BlockRegistry[neighbor] : null;
+                        if(neighborData && !neighborData.transparent) continue; // skip hidden faces
     
                         const texture = blockData.textures[face.face];
                         const key = texture.uuid; // unique id for each texture
@@ -201,9 +215,13 @@ export class Chunk{
     
             const material = new THREE.MeshLambertMaterial({
                 map: g.texture,
-                color: key === TEXTURES.leaves.uuid || key === TEXTURES.grass_top.uuid 
-                    ? 0x5d9e2f  // green tint for leaves and grass
-                    : 0xffffff  // no tint for other blocks
+                // transparent: g.texture === TEXTURES.leaves,
+                alphaTest: g.texture === TEXTURES.leaves ? 0.9 : 0,
+                // depthWrite: g.texture == TEXTURES.leaves ? false : true,
+                color: 0xffffff  // no tint for other blocks
+                // key === TEXTURES.leaves.uuid || key === TEXTURES.grass_top.uuid 
+                //     ? 0x5d9e2f  // green tint for leaves and grass
+                //     : 
             });
     
             const mesh = new THREE.Mesh(geometry, material);
