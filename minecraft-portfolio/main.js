@@ -9,6 +9,7 @@ import { initMultiplayer, updatePlayerTags } from './multiplayer';
 import { initSigns, openSignPlacement } from './sign';
 import { initHotbar, initPauseMenu, getSelectedBlock, enablePause, updateHotbarUI } from './ui';
 import { getHotbarSlots, initInventory } from './inventory';
+import { initPortals, updatePortals, openPortalPlacement } from './portal';
 
 // renderer
 const canvas = document.getElementById('game');
@@ -74,6 +75,7 @@ async function start(){
 async function startGame(){
     const world = new World(scene);
     await world.init('BaseWorld');
+    await initPortals(scene, 'BaseWorld');
     initMultiplayer(scene);
     enablePause();
 
@@ -89,6 +91,7 @@ start();
 const updateSigns = await initSigns(camera, controls);
 
 function animate(){
+    
     requestAnimationFrame(animate);
 
     raycaster.ray.origin.copy(camera.position);
@@ -112,12 +115,22 @@ function animate(){
     if(!keys['KeyW'] && !keys['KeyS'] && !keys['KeyA'] && !keys['KeyD']) move(direction, 0, 1);
     if(keys['Space']) p.isOnGround ? p.jump = true : 0;
     if(keys['ControlLeft'] || keys['ControlRight']) p.position.y -= speed;
+    let lPressed = false;
+    if(keys['KeyL'] && !lPressed){
+        lPressed = true;
+        const target = blockInView();
+        if(target && document.getElementById('sign-ui').style.display === 'none'){
+            openSignPlacement(target.bx, target.by + 1, target.bz, controls);
+        }
+    } else if(!keys['KeyL']){
+        lPressed = false;
+    }
     let pPressed = false;
     if(keys['KeyP'] && !pPressed){
         pPressed = true;
         const target = blockInView();
-        if(target && document.getElementById('sign-ui').style.display === 'none'){
-            openSignPlacement(target.bx, target.by + 1, target.bz, controls);
+        if(target && document.getElementById('portal-ui').style.display === 'none'){
+            openPortalPlacement(target.bx, target.by + 1, target.bz, controls, camera);
         }
     } else if(!keys['KeyP']){
         pPressed = false;
@@ -126,6 +139,11 @@ function animate(){
     p.move();
     updatePresence(p.position.x, p.position.y, p.position.z, playerName, sessionId);
     updatePlayerTags(camera);
+
+    updatePortals(p.position, camera, (newWorld) => {
+        // handle world switching here later
+        console.log('switching to world:', newWorld);
+    });
 
     renderer.render(scene, camera);
 }

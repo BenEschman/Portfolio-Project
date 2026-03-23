@@ -1,9 +1,30 @@
 import { BlockRegistry } from './World';
+
 let paused = false;
 let gameReady = false;
-let selectedBlockValue = 1;
-
 let selectedIndex = 0;
+
+export function isUIOpen(){
+    const signUI = document.getElementById('sign-ui');
+    const portalUI = document.getElementById('portal-ui');
+    const inventory = document.getElementById('inventory');
+    
+    return (
+        (signUI && signUI.style.display !== 'none') ||
+        (portalUI && portalUI.style.display !== 'none') ||
+        (inventory && inventory.style.display !== 'none')
+    );
+}
+
+function safeLock(controls){
+    setTimeout(() => {
+        try {
+            controls.lock();
+        } catch(e) {
+            // browser rejected, ignore
+        }
+    }, 200);
+}
 
 export function getSelectedBlock(){
     const slots = document.querySelectorAll('.slot');
@@ -84,19 +105,55 @@ export function initPauseMenu(controls){
     document.getElementById('resume-btn').addEventListener('click', (e) => {
         e.stopPropagation();
         pauseMenu.classList.remove('visible');
-        controls.lock();
+        paused = false;
+        
+        // show click to continue message
+        const clickMsg = document.createElement('div');
+        clickMsg.id = 'click-to-continue';
+        clickMsg.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-family: sans-serif;
+            font-size: 24px;
+            background: rgba(0,0,0,0.6);
+            padding: 20px 40px;
+            border: 2px solid #888;
+            z-index: 200;
+            pointer-events: none;
+        `;
+        clickMsg.textContent = 'Click to continue';
+        document.body.appendChild(clickMsg);
+    
+        // remove message and lock on next click
+        const onClick = () => {
+            try {
+                controls.lock();
+            } catch(err) {}
+            clickMsg.remove();
+            document.removeEventListener('click', onClick);
+        };
+    
+        setTimeout(() => {
+            document.addEventListener('click', onClick);
+        }, 200);
     });
 
     document.getElementById('reset-btn').addEventListener('click', (e) => {
         e.stopPropagation();
     });
 
-    document.addEventListener('click', () => {
-        if(!paused && gameReady) controls.lock();
+    document.addEventListener('click', (e) => {
+        if(!paused && gameReady && !isUIOpen()){
+            safeLock(controls);
+        }
     });
 
     controls.addEventListener('unlock', () => {
         if(!gameReady) return;
+        if(isUIOpen()) return;
         paused = true;
         pauseMenu.classList.add('visible');
     });

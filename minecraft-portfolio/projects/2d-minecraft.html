@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>2D Minecraft | Ben Eschman</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background: #1a1a2e;
+            color: white;
+            font-family: 'Segoe UI', sans-serif;
+            min-height: 100vh;
+        }
+
+        header {
+            background: rgba(0,0,0,0.5);
+            padding: 20px 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 2px solid #444;
+        }
+
+        header h1 {
+            font-size: 24px;
+            color: #5d9e2f;
+        }
+
+        header a {
+            color: #888;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        header a:hover { color: white; }
+
+        .hero {
+            padding: 60px 40px 40px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .hero h2 {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        .hero p.subtitle {
+            color: #888;
+            font-size: 18px;
+            margin-bottom: 30px;
+        }
+
+        .tags {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 30px;
+        }
+
+        .tag {
+            background: rgba(93,158,47,0.2);
+            border: 1px solid #5d9e2f;
+            color: #5d9e2f;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 50px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: 2px solid #5d9e2f;
+            color: white;
+            text-decoration: none;
+            font-size: 15px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn:hover { background: rgba(93,158,47,0.3); }
+
+        .btn.secondary {
+            border-color: #444;
+            color: #888;
+        }
+
+        .btn.secondary:hover {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+
+        .screenshots {
+            max-width: 900px;
+            margin: 0 auto 60px;
+            padding: 0 40px;
+        }
+
+        .screenshots h3 {
+            font-size: 22px;
+            margin-bottom: 20px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-size: 14px;
+        }
+
+        .screenshot-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 12px;
+        }
+
+        .screenshot-grid img {
+            width: 100%;
+            border: 2px solid #333;
+            display: block;
+        }
+
+        .description {
+            max-width: 900px;
+            margin: 0 auto 60px;
+            padding: 0 40px;
+        }
+
+        .description h3 {
+            font-size: 14px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 20px;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+
+        .feature {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid #333;
+            padding: 16px;
+        }
+
+        .feature h4 {
+            color: #5d9e2f;
+            margin-bottom: 6px;
+            font-size: 15px;
+        }
+
+        .feature p {
+            color: #888;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        footer {
+            text-align: center;
+            padding: 40px;
+            color: #444;
+            font-size: 13px;
+            border-top: 1px solid #222;
+        }
+
+        footer a {
+            color: #5d9e2f;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Ben Eschman</h1>
+        <a href="/">← Back to Portfolio World</a>
+    </header>
+
+    <div class="hero">
+        <h2>2D Minecraft</h2>
+        <p class="subtitle">My first major project — a fully featured 2D Minecraft clone built from scratch.</p>
+
+        <div class="tags">
+            <span class="tag">Java</span>
+            <span class="tag">Game Dev</span>
+            <span class="tag">Procedural Generation</span>
+            <span class="tag">First Project</span>
+        </div>
+
+        <div class="buttons">
+            <a href="https://github.com/BenEschman/FakeTerraria" target="_blank" class="btn">View on GitHub</a>
+            <a href="#screenshots" class="btn secondary">Screenshots</a>
+        </div>
+    </div>
+
+    <div class="screenshots" id="screenshots">
+        <h3>Screenshots</h3>
+        <div class="screenshot-grid">
+            <!-- Add your screenshot image tags here -->
+            <!-- <img src="YOUR_SCREENSHOT_URL" alt="2D Minecraft screenshot"> -->
+            <img src="https://github.com/BenEschman/FakeTerraria/blob/master/screenshots/menu.png?raw=true" alt="menu">
+            <img src="https://github.com/BenEschman/FakeTerraria/blob/master/screenshots/world.png?raw=true" alt="world">
+            <img src="https://github.com/BenEschman/FakeTerraria/blob/master/screenshots/inventory.png?raw=true" alt="inventory">
+            <img src="https://github.com/BenEschman/FakeTerraria/blob/master/screenshots/underground.png?raw=true" alt="underground">
+        </div>
+    </div>
+
+    <div class="description">
+        <h3>Features</h3>
+        <div class="features">
+            <div class="feature">
+                <h4>Procedural World</h4>
+                <p>Fully randomly generated terrain with custom trees, ores, and infinite world generation in all directions.</p>
+            </div>
+            <div class="feature">
+                <h4>Block System</h4>
+                <p>Place and break blocks with custom textures. Dig down to find ores or build structures.</p>
+            </div>
+            <div class="feature">
+                <h4>Inventory & Crafting</h4>
+                <p>Full inventory system with crafting mechanics to create new items and blocks.</p>
+            </div>
+            <div class="feature">
+                <h4>Save & Load</h4>
+                <p>Worlds can be saved and loaded so your progress is never lost.</p>
+            </div>
+            <div class="feature">
+                <h4>Entities</h4>
+                <p>A pig entity that roams the world randomly, bringing the world to life.</p>
+            </div>
+            <div class="feature">
+                <h4>Custom Textures</h4>
+                <p>Hand-crafted pixel art textures for all blocks and entities.</p>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        Built by <a href="/">Ben Eschman</a> · View the full portfolio in the 3D world
+    </footer>
+
+</body>
+</html>

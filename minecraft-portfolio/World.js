@@ -27,6 +27,8 @@ const TEXTURES = {
     planks:     loadTex('/textures/oak_planks2.png'),
     quartz_pillar:     loadTex('/textures/quartz_pillar.png'),
     quartz_pillar_top:     loadTex('/textures/quarts_pillar_top.png'), 
+    portal_frame:     loadTex('/textures/portal_frame.png'),
+    glow_block:     loadTex('/textures/glow_block.png'), 
 }
 
 
@@ -41,40 +43,50 @@ const FACES = [
 
 export const BlockRegistry = {
     0: { name: 'air', solid: false, transparent: false, textures: null },
-    1: { name: 'grass', solid: true, transparent: false, textures: {
+    1: { name: 'grass', solid: true, transparent: false, glow: 0xffffff, textures: {
         top:    TEXTURES.grass_top,
         bottom: TEXTURES.dirt,
         side:   TEXTURES.grass_side,
     }},
-    2: { name: 'dirt', solid: true, transparent: false, textures: {
+    2: { name: 'dirt', solid: true, transparent: false, glow: 0xffffff, textures: {
         top:    TEXTURES.dirt,
         bottom: TEXTURES.dirt,
         side:   TEXTURES.dirt,
     }},
-    3: { name: 'stone', solid: true, transparent: false, textures: {
+    3: { name: 'stone', solid: true, transparent: false, glow: 0x00ffff, textures: {
         top:    TEXTURES.stone,
         bottom: TEXTURES.stone,
         side:   TEXTURES.stone,
     }},
-    4: { name: 'log', solid: true, transparent: false, textures: {
+    4: { name: 'log', solid: true, transparent: false, glow: 0xffffff, textures: {
         top:    TEXTURES.log_top,
         bottom: TEXTURES.log_top,
         side:   TEXTURES.log_side,
     }},
-    5: { name: 'leaves', solid: true, transparent: true, textures: {
+    5: { name: 'leaves', solid: true, transparent: true, glow: 0x00ffff, textures: {
         top:    TEXTURES.leaves,
         bottom: TEXTURES.leaves,
         side:   TEXTURES.leaves,
     }},
-    6: { name: 'plank', solid: true, transparent: false, textures: {
+    6: { name: 'plank', solid: true, transparent: false, glow: 0xffffff, textures: {
         top:    TEXTURES.planks,
         bottom: TEXTURES.planks,
         side:   TEXTURES.planks,
     }},
-    7: { name: 'quartz pillar', solid: true, transparent: false, textures: {
+    7: { name: 'quartz pillar', solid: true, transparent: false, glow: 0xffffff, textures: {
         top:    TEXTURES.quartz_pillar_top,
         bottom: TEXTURES.quartz_pillar_top,
         side:   TEXTURES.quartz_pillar,
+    }},
+    8: { name: 'portal frame', solid: true, transparent: false, glow: 0x9b59ff, textures: {
+        top:    TEXTURES.portal_frame,
+        bottom: TEXTURES.portal_frame,
+        side:   TEXTURES.portal_frame,
+    }},
+    9: { name: 'glow block', solid: true, transparent: false, glow: 0xffd700, textures: {
+        top:    TEXTURES.glow_block,
+        bottom: TEXTURES.glow_block,
+        side:   TEXTURES.glow_block,
     }},
 }
 
@@ -172,7 +184,8 @@ export class Chunk{
                                 positions: [],
                                 indices: [],
                                 uvs: [],
-                                vertexCount: 0
+                                vertexCount: 0,
+                                color: blockData.glow
                             });
                         }
     
@@ -217,11 +230,8 @@ export class Chunk{
                 map: g.texture,
                 // transparent: g.texture === TEXTURES.leaves,
                 alphaTest: g.texture === TEXTURES.leaves ? 0.9 : 0,
-                // depthWrite: g.texture == TEXTURES.leaves ? false : true,
-                color: 0xffffff  // no tint for other blocks
-                // key === TEXTURES.leaves.uuid || key === TEXTURES.grass_top.uuid 
-                //     ? 0x5d9e2f  // green tint for leaves and grass
-                //     : 
+                // depthWrite: g.texture == TEXTURES.leaves ? false : true, 
+                color: g.color
             });
     
             const mesh = new THREE.Mesh(geometry, material);

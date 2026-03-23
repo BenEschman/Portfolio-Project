@@ -118,3 +118,19 @@ export async function loadSigns(){
     if(error) console.error('sign load error:', error);
     return data;
 }
+
+export async function savePortal(x, y, z, url, label, color, world, toWorld, facing){
+    const { error } = await supabase
+        .from('portals')
+        .insert({ x, y, z, url, label, color, world, to_world: toWorld, facing });
+    if(error) console.error('portal save error:', error);
+}
+
+export async function loadPortals(world){
+    const { data, error } = await supabase
+        .from('portals')
+        .select('*')
+        .eq('world', world);
+    if(error) console.error('portal load error:', error);
+    return data;
+}
