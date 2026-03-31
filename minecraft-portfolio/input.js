@@ -8,12 +8,12 @@ window.addEventListener('blur', () => {
 
 export function initInput(controls, onBreak, onPlace, onReset){
     document.addEventListener('keydown', (e) => {
-        if(isUIOpen()) return; // ignore all game input when UI is open
+        if(isUIOpen()) return; 
         keys[e.code] = true;
     });
 
     document.addEventListener('keyup', (e) => {
-        keys[e.code] = false; // always track key up so keys don't get stuck
+        keys[e.code] = false; 
     });
 
     document.addEventListener('mousedown', (e) => {

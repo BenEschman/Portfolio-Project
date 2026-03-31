@@ -6,6 +6,7 @@ export class Player {
     gravity = -0.015;
     isOnGround = false;
     jump = false;
+    world = "BaseWorld";
 
     isSolid(x, y, z){
         const b = worldGetBlock(Math.floor(x), Math.floor(y), Math.floor(z));

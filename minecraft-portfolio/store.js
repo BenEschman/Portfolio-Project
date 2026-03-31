@@ -4,11 +4,12 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_KEY;
 
+
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
-export async function saveBlock(x, y, z, type, sessionId){
+export async function saveBlock(x, y, z, type, sessionId, world){
     const { error } = await supabase
-        .from('BaseWorld')
+        .from(world)
         .upsert(
             { x, y, z, type, session_id: sessionId },
             { onConflict: 'x,y,z' }
@@ -17,13 +18,26 @@ export async function saveBlock(x, y, z, type, sessionId){
     if(error) console.error('save error:', error);
 }
 
-export async function loadBlocks(){
-    const { data, error } = await supabase
-        .from('BaseWorld')
-        .select('*');
-    
-    if(error) console.error('load error:', error);
-    return data;
+export async function loadBlocks(world){
+    let allBlocks = [];
+    let from = 0;
+    const batchSize = 1000;
+
+    while(true){
+        const { data, error } = await supabase
+            .from(world)
+            .select('*')
+            .range(from, from + batchSize - 1);
+        
+        if(error){ console.error('load error:', error); break; }
+        if(!data || data.length === 0) break;
+        
+        allBlocks = allBlocks.concat(data);
+        if(data.length < batchSize) break;
+        from += batchSize;
+    }
+
+    return allBlocks;
 }
 
 export async function getSeed(name){
@@ -42,11 +56,11 @@ export async function saveSeed(seed, name){
         .upsert({ value: name, seed: seed });
 }
 
-export async function clearBlocks(){
+export async function clearBlocks(world){
     const { error } = await supabase
-        .from('BaseWorld')
+        .from(world)
         .delete()
-        .neq('id', 0); // deletes all rows where id != 0, which is everything
+        .neq('id', 0); 
 }
 
 export async function clearWorldSettings(){
@@ -57,13 +71,13 @@ export async function clearWorldSettings(){
 }
 
 
-export function subscribeToBlocks(onBlockChange){
+export function subscribeToBlocks(onBlockChange, world){
     return supabase
         .channel(`block-changes-${Math.random()}`)
         .on('postgres_changes', {
             event: '*',
             schema: 'public',
-            table: 'BaseWorld'
+            table: world
         }, (payload) => {
             onBlockChange(payload.new);
         })

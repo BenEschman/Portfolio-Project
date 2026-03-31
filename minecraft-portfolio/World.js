@@ -43,7 +43,7 @@ const FACES = [
 
 export const BlockRegistry = {
     0: { name: 'air', solid: false, transparent: false, textures: null },
-    1: { name: 'grass', solid: true, transparent: false, glow: 0xffffff, textures: {
+    1: { name: 'grass', solid: true, transparent: false, glow: 0x00ffff, textures: {
         top:    TEXTURES.grass_top,
         bottom: TEXTURES.dirt,
         side:   TEXTURES.grass_side,
@@ -53,7 +53,7 @@ export const BlockRegistry = {
         bottom: TEXTURES.dirt,
         side:   TEXTURES.dirt,
     }},
-    3: { name: 'stone', solid: true, transparent: false, glow: 0x00ffff, textures: {
+    3: { name: 'stone', solid: true, transparent: false, glow: 0xffffff, textures: {
         top:    TEXTURES.stone,
         bottom: TEXTURES.stone,
         side:   TEXTURES.stone,
@@ -63,7 +63,7 @@ export const BlockRegistry = {
         bottom: TEXTURES.log_top,
         side:   TEXTURES.log_side,
     }},
-    5: { name: 'leaves', solid: true, transparent: true, glow: 0x00ffff, textures: {
+    5: { name: 'leaves', solid: true, transparent: true, glow: 0xffffff, textures: {
         top:    TEXTURES.leaves,
         bottom: TEXTURES.leaves,
         side:   TEXTURES.leaves,
@@ -258,20 +258,24 @@ export class Chunk{
 export class World{
 
     buildTrees(){
-        let trees = Math.round(seededRandom() * 200);
+        let trees = Math.round(seededRandom() * 700);
+        let size = Math.sqrt(chunks.size) * 10;
 
-        for(let i = 0; i < trees; i++ ){
-            let size = Math.sqrt(chunks.size) * 10
+        for(let i = 0; i < trees; i++){
             let x = Math.floor(seededRandom() * size) - size/2;
             let z = Math.floor(seededRandom() * size) - size/2;
+        
+            // skip if outside world bounds
+            if(x < -140 || x > 140 || z < -140 || z > 140) continue;
+        
             Tree.place(x, getTerrainHeight(x, z), z);
         }
     }
 
     constructor(scene){
         
-        for(let cx = -10; cx <= 10; cx++){
-            for(let cz = -10; cz <= 10; cz++){
+        for(let cx = -15; cx <= 15; cx++){
+            for(let cz = -15; cz <= 15; cz++){
                 let chunk = new Chunk(cx, cz, scene);
                 chunks.set(chunkKey(cx, cz), chunk);
                 
@@ -290,7 +294,7 @@ export class World{
         
         seed = worldSeed;
         this.buildTrees();
-        const blocks = await loadBlocks();
+        const blocks = await loadBlocks(key);
         if(blocks){
             for(const b of blocks){
                 worldSetBlockSilent(b.x, b.y, b.z, b.type);
@@ -305,19 +309,23 @@ export class World{
 
 
 }
-export function worldSetBlockSilent(x, y, z, type){
+export function worldSetBlockSilent(x, y, z, type, world){
     let cx = Math.floor(x / 10);
     let cz = Math.floor(z / 10);
     let lx = ((Math.floor(x) % 10) + 10) % 10;
     let lz = ((Math.floor(z) % 10) + 10) % 10;
 
     let chunk = chunks.get(chunkKey(cx, cz));
-    if(!chunk) return;
+    if(!chunk){
+        
+        return;
+    }
+
 
     chunk.setBlock(lx, Math.floor(y), lz, type);
 }
 
-export function worldGetBlock(x, y, z){
+export function worldGetBlock(x, y, z, world){
     let cx = Math.floor(x / 10);
     let cz = Math.floor(z / 10);
 
@@ -330,7 +338,7 @@ export function worldGetBlock(x, y, z){
 
 }
 
-export function worldSetBlock(x, y, z, type){
+export function worldSetBlock(x, y, z, type, world){
     let cx = Math.floor(x / 10);
     let cz = Math.floor(z / 10);
 
@@ -343,8 +351,9 @@ export function worldSetBlock(x, y, z, type){
 
     chunk.setBlock(lx, Math.floor(y), lz, type);
     chunk.rebuildMesh();
-    saveBlock(x, Math.floor(y), z, type, sessionId);
-    return 0;
+    
+
+    saveBlock(x, Math.floor(y), z, type, sessionId, world)
 
 }
 
@@ -366,3 +375,16 @@ export function rebuildChunkAt(x, z){
 }
 
 export {chunks}
+
+export function disposeWorld(scene){
+    for(const chunk of chunks.values()){
+        if(chunk.meshes){
+            for(const mesh of chunk.meshes){
+                scene.remove(mesh);
+                mesh.geometry.dispose();
+                mesh.material.dispose();
+            }
+        }
+    }
+    chunks.clear();
+}

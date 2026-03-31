@@ -1,25 +1,28 @@
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
-import { World, chunks, resetWorld, worldSetBlock } from './World';
+import { World, chunks, disposeWorld, resetWorld, worldSetBlock } from './World';
 import { Player } from './Player';
 import { sessionId, playerName, setPlayerName, loadPlayerName } from './GameState';
 import { updatePresence } from './store';
 import { initInput, keys } from './input';
-import { initMultiplayer, updatePlayerTags } from './multiplayer';
+import { initMultiplayer, updatePlayerTags, otherPlayers } from './multiplayer';
 import { initSigns, openSignPlacement } from './sign';
 import { initHotbar, initPauseMenu, getSelectedBlock, enablePause, updateHotbarUI } from './ui';
 import { getHotbarSlots, initInventory } from './inventory';
 import { initPortals, updatePortals, openPortalPlacement } from './portal';
+
+let worldLoading = false;
 
 // renderer
 const canvas = document.getElementById('game');
 const renderer = new THREE.WebGLRenderer({ canvas });
 renderer.setSize(window.innerWidth, window.innerHeight);
 
+
 // scene
-const scene = new THREE.Scene();
+let scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87ceeb);
-const raycaster = new THREE.Raycaster();
+let raycaster = new THREE.Raycaster();
 
 // camera
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -74,8 +77,8 @@ async function start(){
 
 async function startGame(){
     const world = new World(scene);
-    await world.init('BaseWorld');
-    await initPortals(scene, 'BaseWorld');
+    await world.init(p.world);
+    await initPortals(scene, p.world);
     initMultiplayer(scene);
     enablePause();
 
@@ -93,6 +96,7 @@ const updateSigns = await initSigns(camera, controls);
 function animate(){
     
     requestAnimationFrame(animate);
+    if(worldLoading) return;
 
     raycaster.ray.origin.copy(camera.position);
     camera.getWorldDirection(raycaster.ray.direction);
@@ -141,8 +145,9 @@ function animate(){
     updatePlayerTags(camera);
 
     updatePortals(p.position, camera, (newWorld) => {
-        // handle world switching here later
         console.log('switching to world:', newWorld);
+        p.world = newWorld;
+        switchWorld(p.world);
     });
 
     renderer.render(scene, camera);
@@ -155,7 +160,7 @@ function move(vector, speed, sign){
 
 function breakBlock(){
     const target = blockInView();
-    if(target) worldSetBlock(target.bx, target.by, target.bz, 0);
+    if(target) worldSetBlock(target.bx, target.by, target.bz, 0, p.world);
 }
 
 function placeBlock(){
@@ -175,7 +180,7 @@ function placeBlock(){
 
         if(bx === playerBx && bz === playerBz && (by === playerBy || by === playerBy + 1)) return;
 
-        worldSetBlock(bx, by, bz, getSelectedBlock());
+        worldSetBlock(bx, by, bz, getSelectedBlock(), p.world);
     }
 }
 
@@ -193,4 +198,22 @@ function blockInView(){
         };
     }
     return null;
+}
+async function switchWorld(worldName){
+    worldLoading = true; // pause game logic
+    
+    disposeWorld(scene);
+    
+    // clean up multiplayer
+    for(const [id, player] of otherPlayers){
+        document.body.removeChild(player.label);
+        player.model.dispose();
+    }
+    otherPlayers.clear();
+
+    const world = new World(scene);
+    await world.init(worldName);
+    await initPortals(scene, worldName);
+    
+    worldLoading = false; // resume game logic
 }
