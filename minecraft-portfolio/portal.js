@@ -244,3 +244,16 @@ export function openPortalPlacement(x, y, z, controls, camera){
     controls.unlock();
     setTimeout(() => document.getElementById('portal-label').focus(), 50);
 }
+
+export function disposePortals(scene){
+    for(const p of portalMeshes){
+        scene.remove(p.plane);
+        scene.remove(p.particles);
+        p.plane.geometry.dispose();
+        p.plane.material.dispose();
+        p.particles.geometry.dispose();
+        p.particles.material.dispose();
+        p.labelDiv.remove();
+    }
+    portalMeshes.length = 0;
+}

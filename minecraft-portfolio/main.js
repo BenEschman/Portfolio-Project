@@ -5,11 +5,11 @@ import { Player } from './Player';
 import { sessionId, playerName, setPlayerName, loadPlayerName } from './GameState';
 import { updatePresence } from './store';
 import { initInput, keys } from './input';
-import { initMultiplayer, updatePlayerTags, otherPlayers } from './multiplayer';
-import { initSigns, openSignPlacement } from './sign';
+import { initMultiplayer, updatePlayerTags, otherPlayers, disposeMultiplayer } from './multiplayer';
+import { initSigns, openSignPlacement, disposeSigns } from './sign';
 import { initHotbar, initPauseMenu, getSelectedBlock, enablePause, updateHotbarUI } from './ui';
 import { getHotbarSlots, initInventory } from './inventory';
-import { initPortals, updatePortals, openPortalPlacement } from './portal';
+import { initPortals, updatePortals, openPortalPlacement, disposePortals } from './portal';
 
 let worldLoading = false;
 
@@ -200,20 +200,23 @@ function blockInView(){
     return null;
 }
 async function switchWorld(worldName){
-    worldLoading = true; // pause game logic
-    
-    disposeWorld(scene);
-    
-    // clean up multiplayer
-    for(const [id, player] of otherPlayers){
-        document.body.removeChild(player.label);
-        player.model.dispose();
-    }
-    otherPlayers.clear();
+    worldLoading = true;
 
+    // dispose everything
+    disposeWorld(scene);
+    disposePortals(scene);
+    disposeSigns();
+    disposeMultiplayer();
+
+    // reset player position
+    p.position = { x: 0, y: 55, z: 0 };
+    p.velocity = { x: 0, y: 0, z: 0 };
+
+    // load new world
     const world = new World(scene);
     await world.init(worldName);
     await initPortals(scene, worldName);
-    
-    worldLoading = false; // resume game logic
+    const updateSigns = await initSigns(camera, controls);
+
+    worldLoading = false;
 }

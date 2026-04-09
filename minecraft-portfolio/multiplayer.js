@@ -90,3 +90,11 @@ export function updatePlayerTags(camera){
         }
     }
 }
+
+export function disposeMultiplayer(){
+    for(const [id, player] of otherPlayers){
+        player.label.remove();
+        player.model.dispose();
+    }
+    otherPlayers.clear();
+}

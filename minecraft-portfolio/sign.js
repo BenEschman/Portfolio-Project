@@ -125,3 +125,10 @@ export function openSignPlacement(x, y, z, controls){
     controls.unlock();
     setTimeout(() => document.getElementById('sign-title').focus(), 50);
 }
+
+export function disposeSigns(){
+    for(const sign of signElements){
+        sign.el.remove();
+    }
+    signElements.length = 0;
+}
